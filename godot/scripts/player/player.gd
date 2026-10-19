@@ -12,8 +12,6 @@ var max_ammo: int = 30
 var fire_cd: float = 0.0
 var slide_timer: float = 0.0
 
-@onready var cam: Camera3D = $Camera3D
-
 signal died
 signal health_changed(h: int, mx: int)
 signal ammo_changed(a: int, mx: int)
