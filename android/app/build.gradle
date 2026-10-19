@@ -1,0 +1,25 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'com.mrfokolaii.regionalpower'
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.mrfokolaii.regionalpower"
+        minSdk 21
+        targetSdk 33
+        versionCode 11
+        versionName "1.0.1"
+    }
+    buildTypes {
+        release { minifyEnabled false }
+        debug { debuggable true }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+}
