@@ -1,3 +1,3 @@
-# چیدمان کنترل موبایل (طبق اسکرین‌شات مرجع)
-
-چپ: جوستیک | راست: شلیک، میلی، اسلاید، پرش، ری‌لود، تعامل، دفاع
+# Mobile controls
+Left: joystick
+Right: fire, melee, heavy, special, slide, jump, reload, interact, block
