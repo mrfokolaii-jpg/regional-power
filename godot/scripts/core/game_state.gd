@@ -1,5 +1,4 @@
 extends Node
-## Autoload: GameState
 
 var current_level: int = 1
 var play_stage: int = 1
