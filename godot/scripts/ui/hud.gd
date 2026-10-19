@@ -22,16 +22,11 @@ func _ready() -> void:
 func bind_player(p: Node) -> void:
 	if p.has_signal("health_changed"):
 		p.health_changed.connect(_on_hp)
-	if p.has_signal("ammo_changed"):
-		p.ammo_changed.connect(_on_ammo)
 
 func _on_hp(h: int, m: int) -> void:
 	hp_label.text = "HP %d" % h
 	hp_bar.max_value = m
 	hp_bar.value = h
-
-func _on_ammo(a: int, m: int) -> void:
-	pass
 
 func set_objective(t: String) -> void:
 	obj_label.text = t
