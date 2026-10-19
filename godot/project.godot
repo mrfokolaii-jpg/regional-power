@@ -1,0 +1,30 @@
+; Regional Power — Godot 4 — Android APK
+config_version=5
+
+[application]
+config/name="Regional Power"
+config/description="پاک‌سازی ۱۰۰ شهر ایران"
+run/main_scene="res://scenes/main_menu.tscn"
+config/version="0.1.0"
+config/icon="res://icon.svg"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+
+[input_devices]
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+renderer/rendering_method="mobile"
+
+[android]
+package/unique_name="com.mrfokolaii.regionalpower"
+package/name="Regional Power"
+version/code=1
+version/name="0.1.0"
+
+[autoload]
+GameState="*res://scripts/core/game_state.gd"
