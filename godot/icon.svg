@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect fill="#1a2a1a" width="128" height="128"/><text x="64" y="72" text-anchor="middle" fill="#c4a35a" font-size="28" font-family="sans-serif">RP</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">
+  <rect width="128" height="128" fill="#0d1b16"/>
+  <circle cx="64" cy="52" r="28" fill="#d4af5a"/>
+  <rect x="40" y="78" width="48" height="28" rx="4" fill="#2e8b57"/>
+  <rect x="28" y="110" width="72" height="8" fill="#c0392b"/>
+</svg>

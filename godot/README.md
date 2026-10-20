@@ -1,10 +1,19 @@
-# Regional Power (Godot 4)
+# Regional Power — Godot 4
 
-پاک‌سازی ۱۰۰ شهر ایران. بدون Unity.
+پروژه کامل Godot 4 روی همین ریپو:
+
+- منو + انتخاب شخصیت (آرش، سارا، رستم، کاوه)
+- ۱۰۰ مرحله داستانی
+- مشت / لگد / پرش / سر / ویژه / سپر
+- نوار جان + Win و رفتن خودکار مرحله بعد
+
+## اجرا (نیاز به کامپیوتر یک‌بار)
+1. نصب Godot 4.2+ از godotengine.org
+2. Import پوشه `godot/`
+3. F5 برای اجرا
 
 ## APK
-1. Godot 4.3+
-2. Import این پوشه
-3. Export → Android
+Export → Android (با JDK و SDK)
 
-Mohammad Fokolaii · mrfokolaii@gmail.com
+اگر فقط موبایل داری، از Actions نسخهٔ Android جاوا را دانلود کن:
+https://github.com/mrfokolaii-jpg/regional-power/actions
