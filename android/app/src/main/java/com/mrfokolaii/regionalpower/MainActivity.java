@@ -49,14 +49,46 @@ public class MainActivity extends Activity {
             unlocked = prefs.getInt("level", 1);
             xp = prefs.getInt("xp", 0);
             preview = unlocked;
+            stages = loadStages(c);
+            text.setTypeface(Typeface.DEFAULT_BOLD);
+            setKeepScreenOn(true);
+        }
+
+        static JSONArray loadStages(android.content.Context c) {
+            JSONArray all = new JSONArray();
+            String[] files = {
+                "stages_100.json",
+                "stages_part1.json", "stages_part2.json",
+                "stages_part3.json", "stages_part4.json"
+            };
             try {
                 InputStream is = c.getAssets().open("stages_100.json");
                 byte[] buf = new byte[is.available()];
                 is.read(buf); is.close();
-                stages = new JSONArray(new String(buf, "UTF-8"));
-            } catch (Exception e) { stages = new JSONArray(); }
-            text.setTypeface(Typeface.DEFAULT_BOLD);
-            setKeepScreenOn(true);
+                JSONArray one = new JSONArray(new String(buf, "UTF-8"));
+                if (one.length() >= 50) return one;
+            } catch (Exception ignored) {}
+            for (int p = 1; p <= 4; p++) {
+                try {
+                    InputStream is = c.getAssets().open("stages_part" + p + ".json");
+                    byte[] buf = new byte[is.available()];
+                    is.read(buf); is.close();
+                    JSONArray part = new JSONArray(new String(buf, "UTF-8"));
+                    for (int i = 0; i < part.length(); i++) all.put(part.get(i));
+                } catch (Exception ignored) {}
+            }
+            if (all.length() == 0) {
+                for (int i = 1; i <= 100; i++) {
+                    try {
+                        JSONObject o = new JSONObject();
+                        o.put("n", i); o.put("fa", "شهر " + i);
+                        o.put("enemies", 2 + i / 15); o.put("xp", 100 + i * 8);
+                        o.put("brief", "پاک‌سازی");
+                        all.put(o);
+                    } catch (Exception ignored) {}
+                }
+            }
+            return all;
         }
 
         protected void onSizeChanged(int w, int h, int a, int b) {
