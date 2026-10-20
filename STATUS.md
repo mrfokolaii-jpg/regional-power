@@ -1,12 +1,19 @@
-# وضعیت مخزن
+# وضعیت پروژه
 
-پروژه Regional Power روی این مخزن است.
+آخرین بازسازی: ۲۰۲۶-۱۰-۲۰
 
-- `godot/` — سورس کامل Godot 4
-- `godot/data/stages_100.json` — ۱۰۰ مرحله شهرهای ایران
-- کنترل لمسی، دشمن AI، منو، ذخیره XP
+## آماده
+- [x] پروژه Android Studio قابل Build
+- [x] MainActivity با گیم‌پلی کامل (منو، مرحله، دشمن، شلیک/مشت)
+- [x] ۱۰۰ مرحله شهرهای ایران (stages_part1–4)
+- [x] کنترل موبایل (جوستیک + دکمه‌ها)
+- [x] ذخیره پیشرفت (SharedPreferences)
+- [x] اسکلت Godot 4
 
-## APK
-با Godot: Export → Android
+## هنوز نیست
+- [ ] گرافیک سه‌بعدی سطح کالاف
+- [ ] چندنفره آنلاین واقعی
+- [ ] APK باینری داخل ریپو (باید خودت Build کنی)
 
-لینک: https://github.com/mrfokolaii-jpg/regional-power
+## ساخت
+Android Studio → Open `android/` → Build APK
