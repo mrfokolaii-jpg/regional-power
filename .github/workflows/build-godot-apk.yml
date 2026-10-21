@@ -6,54 +6,34 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.2.2
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Android SDK
+      - name: Setup
         run: |
           set -e
-          SDK_ROOT="$HOME/android-sdk"
-          mkdir -p "$SDK_ROOT/cmdline-tools"
-          curl -fsSL -o /tmp/cmdtools.zip \
-            "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-          unzip -q /tmp/cmdtools.zip -d "$SDK_ROOT/cmdline-tools"
-          mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$SDK_ROOT/cmdline-tools/latest"
-          SM="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          chmod +x "$SM"
-          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-          yes | "$SM" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
-          "$SM" --sdk_root="$SDK_ROOT" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-      - name: Download Godot + templates
-        run: |
-          set -e
-          curl -fsSL -o /tmp/godot.zip \
-            "https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip"
-          unzip -q /tmp/godot.zip -d $HOME/godot
-          GODOT=$(find $HOME/godot -type f -name 'Godot*' | head -1)
-          chmod +x "$GODOT"
-          echo "GODOT=$GODOT" >> "$GITHUB_ENV"
-          mkdir -p $HOME/.local/share/godot/export_templates/4.2.2.stable
-          curl -fsSL -o /tmp/templates.tpz \
-            "https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz"
-          unzip -q /tmp/templates.tpz -d /tmp/templates
-          if [ -d /tmp/templates/templates ]; then
-            cp -r /tmp/templates/templates/* $HOME/.local/share/godot/export_templates/4.2.2.stable/
-          else
-            cp -r /tmp/templates/* $HOME/.local/share/godot/export_templates/4.2.2.stable/
+          mkdir -p ~/.local/share/godot/export_templates
+          # image already has templates at /root/.local/share/godot/export_templates
+          ls /root/.local/share/godot/export_templates/ || true
+          ls ~/.local/share/godot/export_templates/ || true
+          # link if needed
+          if [ -d /root/.local/share/godot/export_templates ] && [ ! -d "$HOME/.local/share/godot/export_templates/4.2.2.stable" ]; then
+            mkdir -p "$HOME/.local/share/godot/export_templates"
+            ln -sfn /root/.local/share/godot/export_templates/* "$HOME/.local/share/godot/export_templates/" 2>/dev/null || \
+              cp -a /root/.local/share/godot/export_templates/. "$HOME/.local/share/godot/export_templates/" || true
           fi
+          which godot || which Godot || true
+          godot --version || Godot_v4.2.2-stable_linux.x86_64 --version || true
 
-      - name: Keystore + export_presets
+      - name: Keystore + preset
         run: |
           set -e
+          keytool -genkeypair -keystore "$HOME/debug.keystore" \
+            -storepass android -alias androiddebugkey -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US" || \
           keytool -genkeypair -keystore "$HOME/debug.keystore" \
             -storepass android -alias androiddebugkey -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
@@ -63,7 +43,6 @@ jobs:
           from pathlib import Path
           import os
           ks = os.path.expanduser("~/debug.keystore")
-          # No min_sdk/target_sdk when use_gradle_build=false
           Path("godot/export_presets.cfg").write_text(f"""[preset.0]
 
           name="Android"
@@ -98,8 +77,8 @@ jobs:
           keystore/release=""
           keystore/release_user=""
           keystore/release_password=""
-          version/code=5
-          version/name="1.1.3"
+          version/code=6
+          version/name="1.2.0"
           package/unique_name="com.mrfokolaii.regionalpower.godot"
           package/name="Regional Power"
           package/signed=true
@@ -118,29 +97,39 @@ jobs:
           permissions/custom_permissions=false
           permissions/internet=false
           """.replace("\n          ", "\n"))
-          print(Path("godot/export_presets.cfg").read_text())
           PY
           mkdir -p "$HOME/.config/godot"
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/lib/android-sdk}}"
           printf '%s\n' \
             '[gd_resource type="EditorSettings" format=3]' \
             '' \
             '[resource]' \
-            "export/android/android_sdk_path=\"$HOME/android-sdk\"" \
+            "export/android/android_sdk_path=\"$SDK\"" \
             "export/android/debug_keystore=\"$KS\"" \
             'export/android/debug_keystore_user="androiddebugkey"' \
             'export/android/debug_keystore_pass="android"' \
             > "$HOME/.config/godot/editor_settings-4.tres"
+          echo "SDK=$SDK"
+          ls "$SDK" 2>/dev/null | head || true
 
-      - name: Import + Export APK
+      - name: Export APK
         working-directory: godot
         run: |
           set -e
-          "$GODOT" --headless --path . --import 2>&1 | tail -20 || true
+          GODOT_BIN=$(command -v godot || command -v Godot || true)
+          if [ -z "$GODOT_BIN" ]; then
+            GODOT_BIN=$(find /usr /opt /root -name 'Godot*' -type f 2>/dev/null | head -1)
+          fi
+          echo "Using: $GODOT_BIN"
+          "$GODOT_BIN" --version || true
+          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -15 || true
           mkdir -p ../build
-          "$GODOT" --headless --path . --export-debug "Android" "../build/RegionalPower-Godot.apk" 2>&1 | tee /tmp/export.log
+          "$GODOT_BIN" --headless --path . --export-debug "Android" "../build/RegionalPower-Godot.apk" 2>&1 | tee /tmp/export.log
           if [ ! -f ../build/RegionalPower-Godot.apk ]; then
-            echo "EXPORT FAILED"
+            echo "=== FULL LOG ==="
             cat /tmp/export.log
+            echo "=== TEMPLATES ==="
+            find /root /home -path '*export_templates*' 2>/dev/null | head -30
             exit 1
           fi
           ls -lh ../build/RegionalPower-Godot.apk
