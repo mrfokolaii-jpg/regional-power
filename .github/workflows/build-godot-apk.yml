@@ -23,11 +23,14 @@ jobs:
             "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
           unzip -q /tmp/cmdtools.zip -d "$SDK_ROOT/cmdline-tools"
           mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$SDK_ROOT/cmdline-tools/latest"
+          SM="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          chmod +x "$SM"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          yes | sdkmanager --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
-          sdkmanager --sdk_root="$SDK_ROOT" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          yes | "$SM" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
+          "$SM" --sdk_root="$SDK_ROOT" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Download Godot + templates
         run: |
@@ -48,19 +51,20 @@ jobs:
           else
             cp -r /tmp/templates/* $HOME/.local/share/godot/export_templates/4.2.2.stable/
           fi
-          ls $HOME/.local/share/godot/export_templates/4.2.2.stable/ | head
 
-      - name: Keystore + export_presets (all 3 fields)
+      - name: Keystore + export_presets
         run: |
           set -e
           keytool -genkeypair -keystore "$HOME/debug.keystore" \
             -storepass android -alias androiddebugkey -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
-
           KS="$HOME/debug.keystore"
-          cat > godot/export_presets.cfg << EOF
-          [preset.0]
+          python3 - << PY
+          from pathlib import Path
+          import os
+          ks = os.path.expanduser("~/debug.keystore")
+          Path("godot/export_presets.cfg").write_text(f"""[preset.0]
 
           name="Android"
           platform="Android"
@@ -90,14 +94,14 @@ jobs:
           architectures/arm64-v8a=true
           architectures/x86=false
           architectures/x86_64=false
-          keystore/debug="${KS}"
+          keystore/debug="{ks}"
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
           keystore/release=""
           keystore/release_user=""
           keystore/release_password=""
-          version/code=3
-          version/name="1.1.1"
+          version/code=4
+          version/name="1.1.2"
           package/unique_name="com.mrfokolaii.regionalpower.godot"
           package/name="Regional Power"
           package/signed=true
@@ -115,9 +119,9 @@ jobs:
           gesture/swipe_to_dismiss=false
           permissions/custom_permissions=false
           permissions/internet=false
-          EOF
-          sed -i 's/^[[:space:]]*//' godot/export_presets.cfg
-
+          """.replace("\n          ", "\n"))
+          print(Path("godot/export_presets.cfg").read_text())
+          PY
           mkdir -p "$HOME/.config/godot"
           printf '%s\n' \
             '[gd_resource type="EditorSettings" format=3]' \
@@ -128,12 +132,6 @@ jobs:
             'export/android/debug_keystore_user="androiddebugkey"' \
             'export/android/debug_keystore_pass="android"' \
             > "$HOME/.config/godot/editor_settings-4.tres"
-          cp "$HOME/.config/godot/editor_settings-4.tres" "$HOME/.config/godot/editor_settings-4.2.tres" || true
-
-          echo "=== export_presets keystore lines ==="
-          grep keystore godot/export_presets.cfg
-          echo "=== editor settings ==="
-          cat "$HOME/.config/godot/editor_settings-4.tres"
 
       - name: Import + Export APK
         working-directory: godot
