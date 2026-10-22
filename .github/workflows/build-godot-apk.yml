@@ -11,39 +11,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup
+      - name: Setup templates + godot
         run: |
           set -e
-          mkdir -p ~/.local/share/godot/export_templates
-          # image already has templates at /root/.local/share/godot/export_templates
-          ls /root/.local/share/godot/export_templates/ || true
-          ls ~/.local/share/godot/export_templates/ || true
-          # link if needed
-          if [ -d /root/.local/share/godot/export_templates ] && [ ! -d "$HOME/.local/share/godot/export_templates/4.2.2.stable" ]; then
-            mkdir -p "$HOME/.local/share/godot/export_templates"
-            ln -sfn /root/.local/share/godot/export_templates/* "$HOME/.local/share/godot/export_templates/" 2>/dev/null || \
-              cp -a /root/.local/share/godot/export_templates/. "$HOME/.local/share/godot/export_templates/" || true
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          if [ -d /root/.local/share/godot/export_templates ]; then
+            cp -a /root/.local/share/godot/export_templates/. "$HOME/.local/share/godot/export_templates/" 2>/dev/null || true
           fi
-          which godot || which Godot || true
-          godot --version || Godot_v4.2.2-stable_linux.x86_64 --version || true
+          ls -la "$HOME/.local/share/godot/export_templates/" || true
+          ls -la /root/.local/share/godot/export_templates/ || true
+          command -v godot || true
+          godot --version || true
 
-      - name: Keystore + preset
+      - name: Keystore + export_presets (shell only)
         run: |
           set -e
-          keytool -genkeypair -keystore "$HOME/debug.keystore" \
-            -storepass android -alias androiddebugkey -keypass android \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US" || \
-          keytool -genkeypair -keystore "$HOME/debug.keystore" \
+          KS="$HOME/debug.keystore"
+          keytool -genkeypair -keystore "$KS" \
             -storepass android -alias androiddebugkey -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
-          KS="$HOME/debug.keystore"
-          python3 - << PY
-          from pathlib import Path
-          import os
-          ks = os.path.expanduser("~/debug.keystore")
-          Path("godot/export_presets.cfg").write_text(f"""[preset.0]
+
+          cat > godot/export_presets.cfg << EOF
+          [preset.0]
 
           name="Android"
           platform="Android"
@@ -71,14 +61,14 @@ jobs:
           architectures/arm64-v8a=true
           architectures/x86=false
           architectures/x86_64=false
-          keystore/debug="{ks}"
+          keystore/debug="$KS"
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
           keystore/release=""
           keystore/release_user=""
           keystore/release_password=""
-          version/code=6
-          version/name="1.2.0"
+          version/code=7
+          version/name="1.2.1"
           package/unique_name="com.mrfokolaii.regionalpower.godot"
           package/name="Regional Power"
           package/signed=true
@@ -96,40 +86,45 @@ jobs:
           gesture/swipe_to_dismiss=false
           permissions/custom_permissions=false
           permissions/internet=false
-          """.replace("\n          ", "\n"))
-          PY
+          EOF
+          sed -i 's/^[[:space:]]*//' godot/export_presets.cfg
+
           mkdir -p "$HOME/.config/godot"
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/lib/android-sdk}}"
-          printf '%s\n' \
-            '[gd_resource type="EditorSettings" format=3]' \
-            '' \
-            '[resource]' \
-            "export/android/android_sdk_path=\"$SDK\"" \
-            "export/android/debug_keystore=\"$KS\"" \
-            'export/android/debug_keystore_user="androiddebugkey"' \
-            'export/android/debug_keystore_pass="android"' \
-            > "$HOME/.config/godot/editor_settings-4.tres"
-          echo "SDK=$SDK"
-          ls "$SDK" 2>/dev/null | head || true
+          cat > "$HOME/.config/godot/editor_settings-4.tres" << EOSE
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path="$SDK"
+          export/android/debug_keystore="$KS"
+          export/android/debug_keystore_user="androiddebugkey"
+          export/android/debug_keystore_pass="android"
+          EOSE
+          sed -i 's/^[[:space:]]*//' "$HOME/.config/godot/editor_settings-4.tres"
+
+          echo "=== keystore lines ==="
+          grep keystore godot/export_presets.cfg
+          echo "SDK=$SDK KS=$KS"
+          ls -la "$KS" "$SDK" 2>/dev/null | head || true
 
       - name: Export APK
         working-directory: godot
         run: |
           set -e
-          GODOT_BIN=$(command -v godot || command -v Godot || true)
+          GODOT_BIN=$(command -v godot || true)
           if [ -z "$GODOT_BIN" ]; then
             GODOT_BIN=$(find /usr /opt /root -name 'Godot*' -type f 2>/dev/null | head -1)
           fi
           echo "Using: $GODOT_BIN"
           "$GODOT_BIN" --version || true
-          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -15 || true
+          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -20 || true
           mkdir -p ../build
           "$GODOT_BIN" --headless --path . --export-debug "Android" "../build/RegionalPower-Godot.apk" 2>&1 | tee /tmp/export.log
           if [ ! -f ../build/RegionalPower-Godot.apk ]; then
             echo "=== FULL LOG ==="
             cat /tmp/export.log
             echo "=== TEMPLATES ==="
-            find /root /home -path '*export_templates*' 2>/dev/null | head -30
+            find /root /home -path '*export_templates*' 2>/dev/null | head -40
             exit 1
           fi
           ls -lh ../build/RegionalPower-Godot.apk
