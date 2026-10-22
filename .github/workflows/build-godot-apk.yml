@@ -11,19 +11,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup templates + godot
+      - name: Setup templates + fix scripts
         run: |
           set -e
+          # Templates into HOME (Actions sets HOME=/github/home in container)
           mkdir -p "$HOME/.local/share/godot/export_templates"
           if [ -d /root/.local/share/godot/export_templates ]; then
-            cp -a /root/.local/share/godot/export_templates/. "$HOME/.local/share/godot/export_templates/" 2>/dev/null || true
+            cp -a /root/.local/share/godot/export_templates/. "$HOME/.local/share/godot/export_templates/"
           fi
-          ls -la "$HOME/.local/share/godot/export_templates/" || true
-          ls -la /root/.local/share/godot/export_templates/ || true
-          command -v godot || true
-          godot --version || true
+          ls "$HOME/.local/share/godot/export_templates/4.2.2.stable/" | head
+          test -f "$HOME/.local/share/godot/export_templates/4.2.2.stable/android_debug.apk"
 
-      - name: Keystore + export_presets (shell only)
+          # Fix GDScript type inference (Godot 4.2 strict)
+          sed -i 's/var dmg :=/var dmg: int =/g' godot/scripts/main.gd
+          # Remove any leftover duplicate StageDB if present
+          rm -f godot/scripts/stage/stage_db.gd
+
+          command -v java
+          java -version
+          godot --version
+
+      - name: Keystore + editor settings + preset
         run: |
           set -e
           KS="$HOME/debug.keystore"
@@ -31,6 +39,19 @@ jobs:
             -storepass android -alias androiddebugkey -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
+
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/lib/android-sdk}}"
+          # Resolve Java home (required by Godot Android export)
+          JAVA_BIN=$(command -v java)
+          JAVA_HOME_DIR=$(dirname "$(dirname "$(readlink -f "$JAVA_BIN" 2>/dev/null || echo "$JAVA_BIN")")")
+          if [ ! -d "$JAVA_HOME_DIR" ] || [ ! -x "$JAVA_HOME_DIR/bin/java" ]; then
+            JAVA_HOME_DIR="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
+          fi
+          if [ ! -x "$JAVA_HOME_DIR/bin/java" ]; then
+            JAVA_HOME_DIR=$(dirname "$(dirname "$(command -v java)")")
+          fi
+          echo "JAVA_HOME_DIR=$JAVA_HOME_DIR"
+          ls "$JAVA_HOME_DIR/bin/java"
 
           cat > godot/export_presets.cfg << EOF
           [preset.0]
@@ -67,8 +88,8 @@ jobs:
           keystore/release=""
           keystore/release_user=""
           keystore/release_password=""
-          version/code=7
-          version/name="1.2.1"
+          version/code=8
+          version/name="1.2.2"
           package/unique_name="com.mrfokolaii.regionalpower.godot"
           package/name="Regional Power"
           package/signed=true
@@ -90,41 +111,31 @@ jobs:
           sed -i 's/^[[:space:]]*//' godot/export_presets.cfg
 
           mkdir -p "$HOME/.config/godot"
-          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/lib/android-sdk}}"
           cat > "$HOME/.config/godot/editor_settings-4.tres" << EOSE
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
           export/android/android_sdk_path="$SDK"
+          export/android/java_sdk_path="$JAVA_HOME_DIR"
           export/android/debug_keystore="$KS"
           export/android/debug_keystore_user="androiddebugkey"
           export/android/debug_keystore_pass="android"
           EOSE
           sed -i 's/^[[:space:]]*//' "$HOME/.config/godot/editor_settings-4.tres"
-
-          echo "=== keystore lines ==="
-          grep keystore godot/export_presets.cfg
-          echo "SDK=$SDK KS=$KS"
-          ls -la "$KS" "$SDK" 2>/dev/null | head || true
+          cat "$HOME/.config/godot/editor_settings-4.tres"
 
       - name: Export APK
         working-directory: godot
         run: |
           set -e
-          GODOT_BIN=$(command -v godot || true)
-          if [ -z "$GODOT_BIN" ]; then
-            GODOT_BIN=$(find /usr /opt /root -name 'Godot*' -type f 2>/dev/null | head -1)
-          fi
+          GODOT_BIN=$(command -v godot)
           echo "Using: $GODOT_BIN"
-          "$GODOT_BIN" --version || true
-          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -20 || true
+          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -30 || true
           mkdir -p ../build
           "$GODOT_BIN" --headless --path . --export-debug "Android" "../build/RegionalPower-Godot.apk" 2>&1 | tee /tmp/export.log
           if [ ! -f ../build/RegionalPower-Godot.apk ]; then
             echo "=== FULL LOG ==="
             cat /tmp/export.log
-            echo "=== TEMPLATES ==="
-            find /root /home -path '*export_templates*' 2>/dev/null | head -40
             exit 1
           fi
           ls -lh ../build/RegionalPower-Godot.apk
