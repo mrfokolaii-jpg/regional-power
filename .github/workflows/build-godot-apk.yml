@@ -11,27 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup templates + fix scripts
+      - name: Templates + script fixes
         run: |
           set -e
-          # Templates into HOME (Actions sets HOME=/github/home in container)
           mkdir -p "$HOME/.local/share/godot/export_templates"
-          if [ -d /root/.local/share/godot/export_templates ]; then
-            cp -a /root/.local/share/godot/export_templates/. "$HOME/.local/share/godot/export_templates/"
-          fi
-          ls "$HOME/.local/share/godot/export_templates/4.2.2.stable/" | head
+          cp -a /root/.local/share/godot/export_templates/. "$HOME/.local/share/godot/export_templates/"
           test -f "$HOME/.local/share/godot/export_templates/4.2.2.stable/android_debug.apk"
-
-          # Fix GDScript type inference (Godot 4.2 strict)
           sed -i 's/var dmg :=/var dmg: int =/g' godot/scripts/main.gd
-          # Remove any leftover duplicate StageDB if present
           rm -f godot/scripts/stage/stage_db.gd
 
-          command -v java
-          java -version
-          godot --version
-
-      - name: Keystore + editor settings + preset
+      - name: Keystore + export preset
         run: |
           set -e
           KS="$HOME/debug.keystore"
@@ -39,103 +28,109 @@ jobs:
             -storepass android -alias androiddebugkey -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
-
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/lib/android-sdk}}"
-          # Resolve Java home (required by Godot Android export)
-          JAVA_BIN=$(command -v java)
-          JAVA_HOME_DIR=$(dirname "$(dirname "$(readlink -f "$JAVA_BIN" 2>/dev/null || echo "$JAVA_BIN")")")
-          if [ ! -d "$JAVA_HOME_DIR" ] || [ ! -x "$JAVA_HOME_DIR/bin/java" ]; then
-            JAVA_HOME_DIR="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
-          fi
-          if [ ! -x "$JAVA_HOME_DIR/bin/java" ]; then
-            JAVA_HOME_DIR=$(dirname "$(dirname "$(command -v java)")")
-          fi
-          echo "JAVA_HOME_DIR=$JAVA_HOME_DIR"
-          ls "$JAVA_HOME_DIR/bin/java"
+          JAVA_HOME_DIR="/usr/lib/jvm/java-17-openjdk-amd64"
+          test -x "$JAVA_HOME_DIR/bin/java"
+          echo "KS=$KS SDK=$SDK JAVA=$JAVA_HOME_DIR"
 
-          cat > godot/export_presets.cfg << EOF
-          [preset.0]
+          # Preset (no leading spaces)
+          printf '%s\n' \
+            '[preset.0]' \
+            '' \
+            'name="Android"' \
+            'platform="Android"' \
+            'runnable=true' \
+            'advanced_options=false' \
+            'dedicated_server=false' \
+            'custom_features=""' \
+            'export_filter="all_resources"' \
+            'include_filter=""' \
+            'exclude_filter=""' \
+            'export_path="../build/RegionalPower-Godot.apk"' \
+            'encryption_include_filters=""' \
+            'encryption_exclude_filters=""' \
+            'encrypt_pck=false' \
+            'encrypt_directory=false' \
+            'script_export_mode=2' \
+            '' \
+            '[preset.0.options]' \
+            '' \
+            'custom_template/debug=""' \
+            'custom_template/release=""' \
+            'gradle_build/use_gradle_build=false' \
+            'gradle_build/export_format=0' \
+            'architectures/armeabi-v7a=false' \
+            'architectures/arm64-v8a=true' \
+            'architectures/x86=false' \
+            'architectures/x86_64=false' \
+            "keystore/debug=\"$KS\"" \
+            'keystore/debug_user="androiddebugkey"' \
+            'keystore/debug_password="android"' \
+            'keystore/release=""' \
+            'keystore/release_user=""' \
+            'keystore/release_password=""' \
+            'version/code=9' \
+            'version/name="1.2.3"' \
+            'package/unique_name="com.mrfokolaii.regionalpower.godot"' \
+            'package/name="Regional Power"' \
+            'package/signed=true' \
+            'package/app_category=2' \
+            'package/retain_data_on_uninstall=false' \
+            'package/exclude_from_recents=false' \
+            'screen/immersive_mode=true' \
+            'screen/support_small=true' \
+            'screen/support_normal=true' \
+            'screen/support_large=true' \
+            'screen/support_xlarge=true' \
+            'user_data_backup/allow=false' \
+            'command_line/extra_args=""' \
+            'xr_features/xr_mode=0' \
+            'gesture/swipe_to_dismiss=false' \
+            'permissions/custom_permissions=false' \
+            'permissions/internet=false' \
+            > godot/export_presets.cfg
 
-          name="Android"
-          platform="Android"
-          runnable=true
-          advanced_options=false
-          dedicated_server=false
-          custom_features=""
-          export_filter="all_resources"
-          include_filter=""
-          exclude_filter=""
-          export_path="../build/RegionalPower-Godot.apk"
-          encryption_include_filters=""
-          encryption_exclude_filters=""
-          encrypt_pck=false
-          encrypt_directory=false
-          script_export_mode=2
+          # Save paths for next step
+          echo "KS=$KS" >> "$GITHUB_ENV"
+          echo "SDK=$SDK" >> "$GITHUB_ENV"
+          echo "JAVA_HOME_DIR=$JAVA_HOME_DIR" >> "$GITHUB_ENV"
 
-          [preset.0.options]
-
-          custom_template/debug=""
-          custom_template/release=""
-          gradle_build/use_gradle_build=false
-          gradle_build/export_format=0
-          architectures/armeabi-v7a=false
-          architectures/arm64-v8a=true
-          architectures/x86=false
-          architectures/x86_64=false
-          keystore/debug="$KS"
-          keystore/debug_user="androiddebugkey"
-          keystore/debug_password="android"
-          keystore/release=""
-          keystore/release_user=""
-          keystore/release_password=""
-          version/code=8
-          version/name="1.2.2"
-          package/unique_name="com.mrfokolaii.regionalpower.godot"
-          package/name="Regional Power"
-          package/signed=true
-          package/app_category=2
-          package/retain_data_on_uninstall=false
-          package/exclude_from_recents=false
-          screen/immersive_mode=true
-          screen/support_small=true
-          screen/support_normal=true
-          screen/support_large=true
-          screen/support_xlarge=true
-          user_data_backup/allow=false
-          command_line/extra_args=""
-          xr_features/xr_mode=0
-          gesture/swipe_to_dismiss=false
-          permissions/custom_permissions=false
-          permissions/internet=false
-          EOF
-          sed -i 's/^[[:space:]]*//' godot/export_presets.cfg
-
-          mkdir -p "$HOME/.config/godot"
-          cat > "$HOME/.config/godot/editor_settings-4.tres" << EOSE
-          [gd_resource type="EditorSettings" format=3]
-
-          [resource]
-          export/android/android_sdk_path="$SDK"
-          export/android/java_sdk_path="$JAVA_HOME_DIR"
-          export/android/debug_keystore="$KS"
-          export/android/debug_keystore_user="androiddebugkey"
-          export/android/debug_keystore_pass="android"
-          EOSE
-          sed -i 's/^[[:space:]]*//' "$HOME/.config/godot/editor_settings-4.tres"
-          cat "$HOME/.config/godot/editor_settings-4.tres"
-
-      - name: Export APK
+      - name: Import then write editor settings then export
         working-directory: godot
         run: |
           set -e
-          GODOT_BIN=$(command -v godot)
-          echo "Using: $GODOT_BIN"
-          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -30 || true
+          GODOT=$(command -v godot)
+
+          # 1) Import first (may create default editor settings)
+          "$GODOT" --headless --path . --import 2>&1 | tail -20 || true
+
+          # 2) OVERWRITE editor settings AFTER import (spaces around = required)
+          mkdir -p "$HOME/.config/godot" /root/.config/godot
+          for DEST in "$HOME/.config/godot/editor_settings-4.tres" "$HOME/.config/godot/editor_settings-4.2.tres" /root/.config/godot/editor_settings-4.tres; do
+            printf '%s\n' \
+              '[gd_resource type="EditorSettings" format=3]' \
+              '' \
+              '[resource]' \
+              "export/android/android_sdk_path = \"$SDK\"" \
+              "export/android/java_sdk_path = \"$JAVA_HOME_DIR\"" \
+              "export/android/debug_keystore = \"$KS\"" \
+              'export/android/debug_keystore_user = "androiddebugkey"' \
+              'export/android/debug_keystore_pass = "android"' \
+              > "$DEST"
+          done
+          echo "=== editor settings ==="
+          cat "$HOME/.config/godot/editor_settings-4.tres"
+
+          # 3) Export
           mkdir -p ../build
-          "$GODOT_BIN" --headless --path . --export-debug "Android" "../build/RegionalPower-Godot.apk" 2>&1 | tee /tmp/export.log
+          "$GODOT" --headless --path . --export-debug "Android" "../build/RegionalPower-Godot.apk" 2>&1 | tee /tmp/export.log
           if [ ! -f ../build/RegionalPower-Godot.apk ]; then
-            echo "=== FULL LOG ==="
+            echo "=== FAIL LOG ==="
             cat /tmp/export.log
+            # Debug: list SDK
+            ls "$SDK" || true
+            ls "$SDK/build-tools" || true
+            ls "$SDK/platforms" || true
             exit 1
           fi
           ls -lh ../build/RegionalPower-Godot.apk
