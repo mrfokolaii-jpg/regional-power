@@ -6,7 +6,7 @@ config/name="Regional Power"
 config/description="پاک‌سازی ۱۰۰ شهر ایران — beat-em-up"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.2", "Mobile")
-config/icon="res://icon.svg"
+config/icon="res://icon.jpg"
 
 [autoload]
 GameState="*res://scripts/game_state.gd"
