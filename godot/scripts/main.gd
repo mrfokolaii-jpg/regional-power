@@ -45,6 +45,8 @@ var stick_center: Vector2
 var stick_knob: Vector2
 var stick_r: float = 90.0
 var stick_id: int = -1
+var char_tex: Array = []
+var char_loaded: bool = false
 var btn_punch: Rect2
 var btn_kick: Rect2
 var btn_jump: Rect2
@@ -52,7 +54,24 @@ var btn_slide: Rect2
 var btn_special: Rect2
 var btn_shield: Rect2
 
+
+func _load_char_textures() -> void:
+	if char_loaded:
+		return
+	char_tex = [null, null, null, null]
+	var paths := [
+		"res://assets/characters/iran.png",
+		"res://assets/characters/russia.png",
+		"res://assets/characters/china.png",
+		"res://assets/characters/korea.png",
+	]
+	for i in range(4):
+		if ResourceLoader.exists(paths[i]):
+			char_tex[i] = load(paths[i]) as Texture2D
+	char_loaded = true
+
 func _ready() -> void:
+	_load_char_textures()
 	stages = StageDB.all()
 	preview = GameState.unlocked_stage
 	stick_center = Vector2(120, 600)
@@ -335,6 +354,21 @@ func _act(r: Rect2, lab: String, col: Color) -> void:
 func _draw_fighter(x: float, y: float, col: Color, face_right: bool, sc: float, armed: bool, style: int) -> void:
 	var s := sc
 	var dir := 1.0 if face_right else -1.0
+	# High-quality sprite for playable characters
+	if style >= 0 and style < char_tex.size() and char_tex[style] != null:
+		var tex: Texture2D = char_tex[style]
+		var th: float = 150.0 * s
+		var tw: float = th * float(tex.get_width()) / float(maxi(1, tex.get_height()))
+		var dest := Rect2(x - tw * 0.5, y - th, tw, th)
+		draw_circle(Vector2(x, y + 4), tw * 0.28, Color(0, 0, 0, 0.25))
+		if face_right:
+			draw_texture_rect(tex, dest, false)
+		else:
+			draw_set_transform(Vector2(x, 0), 0, Vector2(-1, 1))
+			draw_texture_rect(tex, Rect2(-tw * 0.5, y - th, tw, th), false)
+			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		return
+	# Fallback procedural for enemies
 	draw_circle(Vector2(x, y + 6), 22 * s, Color(0, 0, 0, 0.22))
 	draw_rect(Rect2(x - 14 * s, y - 8 * s, 12 * s, 12 * s), Color(0.12, 0.12, 0.14))
 	draw_rect(Rect2(x + 2 * s, y - 8 * s, 12 * s, 12 * s), Color(0.12, 0.12, 0.14))
@@ -344,17 +378,7 @@ func _draw_fighter(x: float, y: float, col: Color, face_right: bool, sc: float, 
 	draw_rect(Rect2(x - 16 * s, y - 62 * s, 32 * s, 34 * s), col)
 	draw_rect(Rect2(x - 16 * s, y - 34 * s, 32 * s, 6 * s), Color(0.16, 0.16, 0.18))
 	draw_circle(Vector2(x, y - 76 * s), 14 * s, Color(0.84, 0.69, 0.57))
-	match style:
-		0: draw_arc(Vector2(x, y - 76 * s), 14 * s, deg_to_rad(200), deg_to_rad(340), 16, Color(0.16, 0.35, 0.71), 6.0 * s)
-		1:
-			draw_circle(Vector2(x, y - 80 * s), 16 * s, Color(0.35, 0.2, 0.12))
-			draw_circle(Vector2(x + 12 * s * dir, y - 60 * s), 10 * s, Color(0.35, 0.2, 0.12))
-		2: draw_arc(Vector2(x, y - 76 * s), 14 * s, deg_to_rad(200), deg_to_rad(340), 16, Color(0.1, 0.1, 0.11), 6.0 * s)
-		3:
-			draw_arc(Vector2(x, y - 76 * s), 15 * s, deg_to_rad(200), deg_to_rad(360), 16, Color(0.78, 0.16, 0.16), 7.0 * s)
-			draw_rect(Rect2(x + 5 * s * dir, y - 80 * s, 17 * s, 6 * s), Color(0.78, 0.16, 0.16))
-		_:
-			draw_arc(Vector2(x, y - 76 * s), 13 * s, deg_to_rad(200), deg_to_rad(340), 16, Color(0.12, 0.12, 0.14), 5.0 * s)
+	draw_arc(Vector2(x, y - 76 * s), 13 * s, deg_to_rad(200), deg_to_rad(340), 16, Color(0.12, 0.12, 0.14), 5.0 * s)
 	draw_rect(Rect2(x - 24 * s * dir - 5, y - 58 * s, 12 * s, 28 * s), col)
 	draw_rect(Rect2(x + 10 * s * dir - 5, y - 56 * s, 12 * s, 28 * s), col)
 	draw_circle(Vector2(x + 26 * s * dir, y - 34 * s), 8 * s, Color(0.9, 0.75, 0.63))
@@ -441,7 +465,7 @@ func _punch() -> void:
 	if weapon == 2 and ammo > 0:
 		_shoot()
 		return
-	var dmg := 16 + GameState.CHAR_PWR[GameState.selected_char] * 4 + (10 if weapon == 1 else 0)
+	var dmg: int = 16 + GameState.CHAR_PWR[GameState.selected_char] * 4 + (10 if weapon == 1 else 0)
 	_hit_front(72.0, dmg, 0.22)
 
 func _kick() -> void:
