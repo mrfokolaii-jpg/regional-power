@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Templates + script fixes
+      - name: Templates + icon + script fixes
         run: |
           set -e
           mkdir -p "$HOME/.local/share/godot/export_templates"
@@ -19,6 +19,20 @@ jobs:
           test -f "$HOME/.local/share/godot/export_templates/4.2.2.stable/android_debug.apk"
           sed -i 's/var dmg :=/var dmg: int =/g' godot/scripts/main.gd
           rm -f godot/scripts/stage/stage_db.gd
+
+          # App icon from emblem SVG
+          if [ -f godot/icon.svg ]; then
+            if command -v convert >/dev/null 2>&1; then
+              convert -background none -resize 192x192 godot/icon.svg godot/icon.png || true
+            fi
+          fi
+          # Prefer PNG if present, else SVG
+          if [ -f godot/icon.png ]; then
+            sed -i 's|config/icon=".*"|config/icon="res://icon.png"|' godot/project.godot
+          else
+            sed -i 's|config/icon=".*"|config/icon="res://icon.svg"|' godot/project.godot
+          fi
+          ls -la godot/icon.* || true
 
       - name: Keystore + export preset
         run: |
@@ -31,9 +45,7 @@ jobs:
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/lib/android-sdk}}"
           JAVA_HOME_DIR="/usr/lib/jvm/java-17-openjdk-amd64"
           test -x "$JAVA_HOME_DIR/bin/java"
-          echo "KS=$KS SDK=$SDK JAVA=$JAVA_HOME_DIR"
 
-          # Preset (no leading spaces)
           printf '%s\n' \
             '[preset.0]' \
             '' \
@@ -69,8 +81,8 @@ jobs:
             'keystore/release=""' \
             'keystore/release_user=""' \
             'keystore/release_password=""' \
-            'version/code=9' \
-            'version/name="1.2.3"' \
+            'version/code=10' \
+            'version/name="1.3.0"' \
             'package/unique_name="com.mrfokolaii.regionalpower.godot"' \
             'package/name="Regional Power"' \
             'package/signed=true' \
@@ -90,7 +102,6 @@ jobs:
             'permissions/internet=false' \
             > godot/export_presets.cfg
 
-          # Save paths for next step
           echo "KS=$KS" >> "$GITHUB_ENV"
           echo "SDK=$SDK" >> "$GITHUB_ENV"
           echo "JAVA_HOME_DIR=$JAVA_HOME_DIR" >> "$GITHUB_ENV"
@@ -100,11 +111,8 @@ jobs:
         run: |
           set -e
           GODOT=$(command -v godot)
-
-          # 1) Import first (may create default editor settings)
           "$GODOT" --headless --path . --import 2>&1 | tail -20 || true
 
-          # 2) OVERWRITE editor settings AFTER import (spaces around = required)
           mkdir -p "$HOME/.config/godot" /root/.config/godot
           for DEST in "$HOME/.config/godot/editor_settings-4.tres" "$HOME/.config/godot/editor_settings-4.2.tres" /root/.config/godot/editor_settings-4.tres; do
             printf '%s\n' \
@@ -118,19 +126,12 @@ jobs:
               'export/android/debug_keystore_pass = "android"' \
               > "$DEST"
           done
-          echo "=== editor settings ==="
-          cat "$HOME/.config/godot/editor_settings-4.tres"
 
-          # 3) Export
           mkdir -p ../build
           "$GODOT" --headless --path . --export-debug "Android" "../build/RegionalPower-Godot.apk" 2>&1 | tee /tmp/export.log
           if [ ! -f ../build/RegionalPower-Godot.apk ]; then
             echo "=== FAIL LOG ==="
             cat /tmp/export.log
-            # Debug: list SDK
-            ls "$SDK" || true
-            ls "$SDK/build-tools" || true
-            ls "$SDK/platforms" || true
             exit 1
           fi
           ls -lh ../build/RegionalPower-Godot.apk
