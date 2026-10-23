@@ -1,6 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">
-  <rect width="128" height="128" fill="#0d1b16"/>
-  <circle cx="64" cy="52" r="28" fill="#d4af5a"/>
-  <rect x="40" y="78" width="48" height="28" rx="4" fill="#2e8b57"/>
-  <rect x="28" y="110" width="72" height="8" fill="#c0392b"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5d76e"/>
+      <stop offset="50%" stop-color="#c9a227"/>
+      <stop offset="100%" stop-color="#8b6914"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e8e8e8"/>
+      <stop offset="100%" stop-color="#888888"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="250" fill="url(#gold)"/>
+  <circle cx="256" cy="256" r="236" fill="#1a1a1a"/>
+  <circle cx="256" cy="256" r="224" fill="url(#ring)"/>
+  <circle cx="256" cy="256" r="208" fill="#0d1117"/>
+  <!-- 4 flag quadrants -->
+  <path d="M256 256 L256 48 A208 208 0 0 1 464 256 Z" fill="#de2910"/>
+  <path d="M256 256 L464 256 A208 208 0 0 1 256 464 Z" fill="#0039a6"/>
+  <path d="M256 256 L256 464 A208 208 0 0 1 48 256 Z" fill="#239f40"/>
+  <path d="M256 256 L48 256 A208 208 0 0 1 256 48 Z" fill="#024fa2"/>
+  <!-- china stars -->
+  <circle cx="350" cy="130" r="16" fill="#ffde00"/>
+  <circle cx="380" cy="115" r="7" fill="#ffde00"/>
+  <circle cx="390" cy="140" r="7" fill="#ffde00"/>
+  <!-- nk star -->
+  <polygon points="130,115 140,145 172,145 146,164 156,194 130,175 104,194 114,164 88,145 120,145" fill="#ffffff"/>
+  <!-- iran white disc -->
+  <circle cx="150" cy="360" r="28" fill="#ffffff" opacity="0.95"/>
+  <text x="150" y="368" text-anchor="middle" font-size="22" fill="#da0000">&#9770;</text>
+  <!-- russia bar -->
+  <rect x="300" y="350" width="90" height="14" fill="#ffffff" opacity="0.55"/>
+  <rect x="300" y="364" width="90" height="14" fill="#d52b1e" opacity="0.7"/>
+  <!-- center globe -->
+  <circle cx="256" cy="256" r="58" fill="#1e3a5f" stroke="url(#gold)" stroke-width="5"/>
+  <ellipse cx="256" cy="256" rx="24" ry="54" fill="none" stroke="#5ba3e0" stroke-width="2.5"/>
+  <ellipse cx="256" cy="256" rx="54" ry="20" fill="none" stroke="#5ba3e0" stroke-width="2.5"/>
+  <line x1="202" y1="256" x2="310" y2="256" stroke="#5ba3e0" stroke-width="2"/>
+  <text x="256" y="262" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="#ffffff">BRICS</text>
+  <!-- captions -->
+  <text x="256" y="36" text-anchor="middle" font-family="Tahoma,Arial,sans-serif" font-size="20" font-weight="bold" fill="#1a1a1a">&#1575;&#1578;&#1581;&#1575;&#1583; &#1602;&#1583;&#1585;&#1578;&#1607;&#1575;&#1740; &#1606;&#1608;&#1740;&#1606;</text>
+  <text x="256" y="492" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#1a1a1a">UNITY OF EMERGING POWERS</text>
 </svg>
