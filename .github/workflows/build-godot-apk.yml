@@ -20,19 +20,19 @@ jobs:
           sed -i 's/var dmg :=/var dmg: int =/g' godot/scripts/main.gd
           rm -f godot/scripts/stage/stage_db.gd
 
-          # App icon from emblem SVG
-          if [ -f godot/icon.svg ]; then
-            if command -v convert >/dev/null 2>&1; then
-              convert -background none -resize 192x192 godot/icon.svg godot/icon.png || true
-            fi
+          # User icon: jpg/png preferred; convert jpg -> png for Android
+          if [ -f godot/icon.jpg ] && command -v convert >/dev/null 2>&1; then
+            convert -resize 192x192 godot/icon.jpg godot/icon.png || cp godot/icon.jpg godot/icon.png || true
           fi
-          # Prefer PNG if present, else SVG
           if [ -f godot/icon.png ]; then
             sed -i 's|config/icon=".*"|config/icon="res://icon.png"|' godot/project.godot
-          else
+          elif [ -f godot/icon.jpg ]; then
+            sed -i 's|config/icon=".*"|config/icon="res://icon.jpg"|' godot/project.godot
+          elif [ -f godot/icon.svg ]; then
             sed -i 's|config/icon=".*"|config/icon="res://icon.svg"|' godot/project.godot
           fi
           ls -la godot/icon.* || true
+          cat godot/project.godot | head -15
 
       - name: Keystore + export preset
         run: |
@@ -81,8 +81,8 @@ jobs:
             'keystore/release=""' \
             'keystore/release_user=""' \
             'keystore/release_password=""' \
-            'version/code=10' \
-            'version/name="1.3.0"' \
+            'version/code=11' \
+            'version/name="1.3.1"' \
             'package/unique_name="com.mrfokolaii.regionalpower.godot"' \
             'package/name="Regional Power"' \
             'package/signed=true' \
