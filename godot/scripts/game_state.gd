@@ -1,12 +1,12 @@
 extends Node
 ## Global progress, character, XP
 
-const CHAR_NAMES := ["آرش", "سارا", "رستم", "کاوه"]
-const CHAR_ROLES := ["متوازن", "سریع", "قدرت", "چابک"]
-const CHAR_COLORS := [Color(0.27, 0.59, 0.86), Color(0.86, 0.27, 0.35), Color(0.86, 0.67, 0.2), Color(0.35, 0.78, 0.47)]
-const CHAR_PWR := [3, 2, 5, 3]
-const CHAR_SPD := [4, 5, 2, 5]
-const CHAR_HP := [100, 90, 125, 95]
+const CHAR_NAMES := ["ایران", "روسیه", "چین", "کره"]
+const CHAR_ROLES := ["مبارز", "ژنرال", "سرباز", "مأمور"]
+const CHAR_COLORS := [Color(0.27, 0.59, 0.35), Color(0.25, 0.35, 0.65), Color(0.75, 0.2, 0.2), Color(0.9, 0.9, 0.95)]
+const CHAR_PWR := [4, 3, 5, 3]
+const CHAR_SPD := [4, 3, 3, 5]
+const CHAR_HP := [110, 100, 120, 95]
 
 var unlocked_stage: int = 1
 var xp: int = 0
